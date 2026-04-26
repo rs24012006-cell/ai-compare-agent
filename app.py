@@ -18,14 +18,10 @@ st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide
 # ---------------- LIGHT THEME CSS ----------------
 st.markdown("""
 <style>
-
-/* Background */
 [data-testid="stAppViewContainer"] {
     background: #F5F7FB;
     color: #1F2937;
 }
-
-/* Cards */
 .card {
     background: white;
     padding: 20px;
@@ -34,8 +30,6 @@ st.markdown("""
     margin-bottom: 15px;
     border: 1px solid #E5E7EB;
 }
-
-/* Buttons */
 .stButton>button {
     background: linear-gradient(90deg, #2563eb, #3b82f6);
     color: white;
@@ -44,28 +38,16 @@ st.markdown("""
     font-weight: 600;
     border: none;
 }
-
-/* Inputs */
 textarea, input {
     border-radius: 10px !important;
     border: 1px solid #D1D5DB !important;
 }
-
-/* Sidebar */
 section[data-testid="stSidebar"] {
     background-color: #FFFFFF;
 }
-
-/* Remove unwanted lines */
-hr {
-    border: none;
-}
-
-/* Header text */
 h1, h2, h3 {
     color: #111827;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -78,11 +60,11 @@ option = st.sidebar.radio(
 
 # ---------------- HEADER ----------------
 st.markdown("""
-<h1 style='text-align:center; color:#111827;'>🚀 AI Compare Agent</h1>
-<p style='text-align:center; color:#6B7280;'>
-Analyze • Practice • Improve • Get Hired
-</p>
+<h1 style='text-align:center;'>🚀 AI Compare Agent</h1>
+<p style='text-align:center; color:gray;'>Analyze • Practice • Improve • Get Hired</p>
 """, unsafe_allow_html=True)
+
+st.markdown("---")
 
 # ---------------- CHART ----------------
 def show_skill_chart(matched, missing):
@@ -123,16 +105,16 @@ if option == "Analyze":
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📄 Job Description")
-        jd = st.text_area("", height=200)
+        jd = st.text_area("JD", height=200, key="jd_analyze")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📄 Resume")
-        resume = st.text_area("", height=200)
+        resume = st.text_area("Resume", height=200, key="resume_analyze")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🔍 Analyze Skills"):
+    if st.button("🔍 Analyze Skills", key="analyze_btn"):
         if jd and resume:
             with st.spinner("Analyzing..."):
                 result = compare_skills(jd, resume)
@@ -146,27 +128,28 @@ if option == "Analyze":
                 missing = data.get("missing", [])
 
             except:
+                st.warning("AI response issue — using fallback data")
                 matched = ["Python", "SQL"]
                 missing = ["AWS", "Django"]
 
-            # KPI Cards
             c1, c2, c3 = st.columns(3)
 
             c1.markdown(f"""
             <div class="card">
-            <h3>✅ Matched Skills</h3>
+            <h3>✅ Matched</h3>
             <h1>{len(matched)}</h1>
             </div>
             """, unsafe_allow_html=True)
 
             c2.markdown(f"""
             <div class="card">
-            <h3>❌ Missing Skills</h3>
+            <h3>❌ Missing</h3>
             <h1>{len(missing)}</h1>
             </div>
             """, unsafe_allow_html=True)
 
-            score = round(len(matched)/(len(matched)+len(missing)+1)*100)
+            total = len(matched) + len(missing)
+            score = round((len(matched) / total) * 100) if total > 0 else 0
 
             c3.markdown(f"""
             <div class="card">
@@ -182,18 +165,18 @@ elif option == "Interview":
 
     st.subheader("🎤 AI Interview")
 
-    skill = st.text_input("Enter Skill")
+    skill = st.text_input("Enter Skill", key="skill_input")
 
-    if st.button("🎯 Generate Question"):
+    if st.button("🎯 Generate Question", key="gen_q"):
         question = generate_question(skill)
         st.session_state["question"] = question
         st.info(question)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    answer = st.text_area("✍️ Your Answer")
+    answer = st.text_area("✍️ Your Answer", key="answer_input")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("📊 Evaluate Answer"):
+    if st.button("📊 Evaluate Answer", key="eval_btn"):
         if "question" in st.session_state:
             result = evaluate_answer(st.session_state["question"], answer)
             st.success(result)
@@ -206,10 +189,10 @@ elif option == "Learning Plan":
     st.subheader("📚 Learning Roadmap")
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    missing_input = st.text_area("Enter Missing Skills")
+    missing_input = st.text_area("Enter Missing Skills", key="missing_input")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🚀 Generate Plan"):
+    if st.button("🚀 Generate Plan", key="plan_btn"):
         if missing_input:
             with st.spinner("Generating roadmap..."):
                 plan = generate_learning_plan(missing_input)
@@ -223,12 +206,12 @@ elif option == "Report":
     col1, col2 = st.columns(2)
 
     with col1:
-        jd = st.text_area("📄 Job Description", height=200)
+        jd = st.text_area("📄 Job Description", height=200, key="jd_report")
 
     with col2:
-        resume = st.text_area("📄 Resume", height=200)
+        resume = st.text_area("📄 Resume", height=200, key="resume_report")
 
-    if st.button("📥 Generate PDF Report"):
+    if st.button("📥 Generate PDF Report", key="pdf_btn"):
         if jd and resume:
             with st.spinner("Generating report..."):
                 score = calculate_resume_score(jd, resume)
@@ -243,6 +226,7 @@ elif option == "Report":
                 missing = data.get("missing", [])
 
             except:
+                st.warning("AI response issue — using fallback data")
                 matched = ["Python", "SQL"]
                 missing = ["AWS", "Django"]
 
