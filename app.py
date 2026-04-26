@@ -15,37 +15,57 @@ from agent import (
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide")
 
-# ---------------- CUSTOM CSS ----------------
+# ---------------- LIGHT THEME CSS ----------------
 st.markdown("""
 <style>
+
+/* Background */
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f172a, #020617);
-    color: white;
+    background: #F5F7FB;
+    color: #1F2937;
 }
 
+/* Cards */
 .card {
-    background: rgba(255,255,255,0.05);
+    background: white;
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.08);
     margin-bottom: 15px;
+    border: 1px solid #E5E7EB;
 }
 
+/* Buttons */
 .stButton>button {
-    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
     color: white;
-    border-radius: 12px;
+    border-radius: 10px;
     height: 45px;
-    font-weight: bold;
+    font-weight: 600;
+    border: none;
 }
 
+/* Inputs */
 textarea, input {
     border-radius: 10px !important;
+    border: 1px solid #D1D5DB !important;
 }
 
+/* Sidebar */
 section[data-testid="stSidebar"] {
-    background-color: #020617;
+    background-color: #FFFFFF;
 }
+
+/* Remove unwanted lines */
+hr {
+    border: none;
+}
+
+/* Header text */
+h1, h2, h3 {
+    color: #111827;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -58,11 +78,11 @@ option = st.sidebar.radio(
 
 # ---------------- HEADER ----------------
 st.markdown("""
-<h1 style='text-align:center;'>🚀 AI Compare Agent</h1>
-<p style='text-align:center; color:gray;'>Analyze • Practice • Improve • Get Hired</p>
+<h1 style='text-align:center; color:#111827;'>🚀 AI Compare Agent</h1>
+<p style='text-align:center; color:#6B7280;'>
+Analyze • Practice • Improve • Get Hired
+</p>
 """, unsafe_allow_html=True)
-
-st.markdown("---")
 
 # ---------------- CHART ----------------
 def show_skill_chart(matched, missing):
@@ -102,12 +122,14 @@ if option == "Analyze":
 
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        jd = st.text_area("📄 Job Description", height=200)
+        st.subheader("📄 Job Description")
+        jd = st.text_area("", height=200)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        resume = st.text_area("📄 Resume", height=200)
+        st.subheader("📄 Resume")
+        resume = st.text_area("", height=200)
         st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("🔍 Analyze Skills"):
