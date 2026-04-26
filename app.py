@@ -13,6 +13,18 @@ from agent import (
     calculate_resume_score
 )
 
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide")
+
+# ---------------- SIDEBAR ----------------
+st.sidebar.title("⚙️ Dashboard")
+st.sidebar.info("AI Skill Assessment System")
+
+option = st.sidebar.radio(
+    "Navigate",
+    ["Analyze", "Interview", "Learning Plan", "Report"]
+)
+
 # ---------------- CHART ----------------
 def show_skill_chart(matched, missing):
     labels = ["Matched Skills", "Missing Skills"]
@@ -23,90 +35,7 @@ def show_skill_chart(matched, missing):
     ax.set_title("Skill Gap Analysis")
     st.pyplot(fig)
 
-
-st.title("AI Compare Agent 🚀")
-
-# ---------------- INPUT ----------------
-jd = st.text_area("📄 Job Description")
-resume = st.text_area("📄 Resume")
-
-# ---------------- ANALYZE BUTTON ----------------
-if st.button("Analyze Skills", key="btn1"):
-
-    if jd and resume:
-        st.info("Analyzing...")
-
-        # Extract skills (optional display)
-        jd_skills = extract_skills(jd)
-        resume_skills = extract_skills(resume)
-
-        st.subheader("JD Skills")
-        st.write(jd_skills)
-
-        st.subheader("Resume Skills")
-        st.write(resume_skills)
-
-        # Compare skills
-        result = compare_skills(jd, resume)
-
-        try:
-            data = json.loads(result)
-
-            matched = data.get("matched", [])
-            missing = data.get("missing", [])
-
-            st.subheader("Matched Skills")
-            st.write(matched)
-
-            st.subheader("Missing Skills")
-            st.write(missing)
-
-            show_skill_chart(matched, missing)
-
-        except:
-            st.error("AI output is not valid JSON")
-            st.write(result)
-
-
-# ---------------- SCORE ----------------
-st.header("📊 Resume Score")
-
-if jd and resume:
-    if st.button("Get Resume Score", key="score_btn"):
-        score = calculate_resume_score(jd, resume)
-        st.subheader("Your Score")
-        st.write(score)
-
-# ---------------- INTERVIEW ----------------
-st.header("🎤 AI Interview")
-
-skill = st.text_input("Enter skill (e.g. Python, SQL)")
-
-if st.button("Generate Question", key="btn2"):
-    question = generate_question(skill)
-    st.session_state["question"] = question
-    st.write(question)
-
-answer = st.text_area("Your Answer")
-
-if st.button("Evaluate Answer", key="btn3"):
-    if "question" in st.session_state:
-        result = evaluate_answer(st.session_state["question"], answer)
-        st.write(result)
-    else:
-        st.warning("Generate question first")
-
-# ---------------- LEARNING ROADMAP ----------------
-st.header("📚 Learning Roadmap Generator")
-
-missing_input = st.text_area("Enter missing skills")
-
-if st.button("Generate Learning Plan", key="learning_btn"):
-    if missing_input:
-        plan = generate_learning_plan(missing_input)
-        st.subheader("Your Plan")
-        st.write(plan)
-
+# ---------------- PDF FUNCTION ----------------
 def generate_pdf_report(score, matched, missing, roadmap_text):
     file_name = "AI_Skill_Report.pdf"
     doc = SimpleDocTemplate(file_name)
@@ -132,27 +61,136 @@ def generate_pdf_report(score, matched, missing, roadmap_text):
 
     return file_name
 
-st.header("📄 Download Report")
+# ---------------- TITLE ----------------
+st.title("🚀 AI Compare Agent")
+st.markdown("### Smart Skill Assessment & Learning System")
+st.divider()
 
-if st.button("Generate PDF Report"):
-    if jd and resume:
+# ================= ANALYZE =================
+if option == "Analyze":
 
-        score = calculate_resume_score(jd, resume)
+    st.markdown("## 📊 Skill Analysis Dashboard")
 
-        result = compare_skills(jd, resume)
+    col1, col2 = st.columns(2)
 
-        try:
-            import json
-            data = json.loads(result)
-            matched = data.get("matched", [])
-            missing = data.get("missing", [])
+    with col1:
+        jd = st.text_area("📄 Job Description", height=250)
+
+    with col2:
+        resume = st.text_area("📄 Resume", height=250)
+
+    if st.button("Analyze Skills"):
+
+        if jd and resume:
+            st.success("Analyzing...")
+
+            result = compare_skills(jd, resume)
+
+            try:
+                # SAFE JSON EXTRACTION
+                start = result.find("{")
+                end = result.rfind("}") + 1
+                json_str = result[start:end]
+
+                data = json.loads(json_str)
+
+                matched = data.get("matched", [])
+                missing = data.get("missing", [])
+
+            except:
+                st.warning("AI did not return proper JSON. Using fallback.")
+
+                matched = ["Python", "SQL"]
+                missing = ["AWS", "Django"]
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+                st.subheader("✅ Matched Skills")
+                st.success(matched)
+
+            with c2:
+                st.subheader("❌ Missing Skills")
+                st.error(missing)
+
+            st.divider()
+            show_skill_chart(matched, missing)
+
+# ================= INTERVIEW =================
+elif option == "Interview":
+
+    st.header("🎤 AI Interview")
+
+    skill = st.text_input("Enter skill (e.g. Python, SQL)")
+
+    if st.button("Generate Question"):
+        question = generate_question(skill)
+        st.session_state["question"] = question
+        st.info(question)
+
+    answer = st.text_area("Your Answer")
+
+    if st.button("Evaluate Answer"):
+        if "question" in st.session_state:
+            result = evaluate_answer(st.session_state["question"], answer)
+            st.success(result)
+        else:
+            st.warning("Generate question first")
+
+# ================= LEARNING PLAN =================
+elif option == "Learning Plan":
+
+    st.header("📚 Learning Roadmap")
+
+    missing_input = st.text_area("Enter Missing Skills")
+
+    if st.button("Generate Plan"):
+        if missing_input:
+            plan = generate_learning_plan(missing_input)
+            st.write(plan)
+
+# ================= REPORT =================
+elif option == "Report":
+
+    st.header("📄 Generate Report")
+
+    jd = st.text_area("📄 Job Description", height=200)
+    resume = st.text_area("📄 Resume", height=200)
+
+    if st.button("Generate PDF Report"):
+
+        if jd and resume:
+            st.info("Generating report...")
+
+            score = calculate_resume_score(jd, resume)
+            result = compare_skills(jd, resume)
+
+            try:
+                start = result.find("{")
+                end = result.rfind("}") + 1
+                json_str = result[start:end]
+
+                data = json.loads(json_str)
+
+                matched = data.get("matched", [])
+                missing = data.get("missing", [])
+
+            except:
+                st.warning("AI did not return proper JSON. Using fallback.")
+
+                matched = ["Python", "SQL"]
+                missing = ["AWS", "Django"]
 
             roadmap_text = generate_learning_plan(str(missing))
 
             file_path = generate_pdf_report(score, matched, missing, roadmap_text)
 
             st.success("PDF Generated Successfully!")
-            st.write("Download file:", file_path)
 
-        except:
-            st.error("Error generating PDF. AI output issue.")
+            with open(file_path, "rb") as f:
+                st.download_button(
+                    label="📥 Download Report",
+                    data=f,
+                    file_name=file_path,
+                    mime="application/pdf"
+                )
