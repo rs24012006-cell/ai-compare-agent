@@ -1,11 +1,10 @@
 import streamlit as st
 import json
-import matplotlib.pyplot as plt
+import plotly.express as px
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
 from agent import (
-    extract_skills,
     compare_skills,
     generate_question,
     evaluate_answer,
@@ -19,62 +18,68 @@ st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide
 # ---------------- CUSTOM CSS ----------------
 st.markdown("""
 <style>
-.main {
-    background-color: #0E1117;
-}
-h1, h2, h3 {
-    color: #F9FAFB;
-}
-.stButton>button {
-    background-color: #4CAF50;
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0f172a, #020617);
     color: white;
-    border-radius: 10px;
-    height: 3em;
-    width: 100%;
 }
-.stTextArea textarea {
-    border-radius: 10px;
-}
+
 .card {
+    background: rgba(255,255,255,0.05);
     padding: 20px;
     border-radius: 15px;
-    background-color: #1E222A;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+    margin-bottom: 15px;
+}
+
+.stButton>button {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    color: white;
+    border-radius: 12px;
+    height: 45px;
+    font-weight: bold;
+}
+
+textarea, input {
+    border-radius: 10px !important;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #020617;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/1055/1055687.png", width=80)
-st.sidebar.title("AI Compare Agent")
-st.sidebar.markdown("---")
-
+st.sidebar.title("🚀 AI Compare Agent")
 option = st.sidebar.radio(
-    "📌 Navigation",
+    "Navigation",
     ["Analyze", "Interview", "Learning Plan", "Report"]
 )
 
-st.sidebar.markdown("---")
-st.sidebar.info("Built for Smart Skill Assessment 🚀")
+# ---------------- HEADER ----------------
+st.markdown("""
+<h1 style='text-align:center;'>🚀 AI Compare Agent</h1>
+<p style='text-align:center; color:gray;'>Analyze • Practice • Improve • Get Hired</p>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
 
 # ---------------- CHART ----------------
 def show_skill_chart(matched, missing):
-    labels = ["Matched", "Missing"]
-    values = [len(matched), len(missing)]
+    data = {
+        "Type": ["Matched", "Missing"],
+        "Count": [len(matched), len(missing)]
+    }
+    fig = px.bar(data, x="Type", y="Count", title="Skill Gap Analysis")
+    st.plotly_chart(fig, use_container_width=True)
 
-    fig, ax = plt.subplots()
-    ax.bar(labels, values)
-    ax.set_title("Skill Gap Analysis")
-    st.pyplot(fig)
-
-# ---------------- PDF FUNCTION ----------------
+# ---------------- PDF ----------------
 def generate_pdf_report(score, matched, missing, roadmap_text):
     file_name = "AI_Skill_Report.pdf"
     doc = SimpleDocTemplate(file_name)
-
     styles = getSampleStyleSheet()
-    content = []
 
+    content = []
     content.append(Paragraph("AI Skill Assessment Report", styles["Title"]))
     content.append(Spacer(1, 12))
     content.append(Paragraph(f"Score: {score}", styles["Normal"]))
@@ -83,47 +88,37 @@ def generate_pdf_report(score, matched, missing, roadmap_text):
     content.append(Spacer(1, 12))
     content.append(Paragraph(f"Missing Skills: {missing}", styles["Normal"]))
     content.append(Spacer(1, 12))
-    content.append(Paragraph(f"Learning Roadmap: {roadmap_text}", styles["Normal"]))
+    content.append(Paragraph(f"Learning Plan: {roadmap_text}", styles["Normal"]))
 
     doc.build(content)
     return file_name
 
-# ---------------- HEADER ----------------
-st.markdown("""
-<h1 style='text-align: center;'>🚀 AI Skill Assessment System</h1>
-<p style='text-align: center; color: gray;'>Analyze • Practice • Improve • Get Hired</p>
-""", unsafe_allow_html=True)
-
-st.markdown("---")
-
 # ================= ANALYZE =================
 if option == "Analyze":
 
-    st.subheader("📊 Skill Analysis Dashboard")
+    st.subheader("📊 Skill Analysis")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        jd = st.text_area("📄 Job Description", height=250)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        jd = st.text_area("📄 Job Description", height=200)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        resume = st.text_area("📄 Resume", height=250)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        resume = st.text_area("📄 Resume", height=200)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("🔍 Analyze Skills"):
-
         if jd and resume:
-            with st.spinner("Analyzing your skills..."):
+            with st.spinner("Analyzing..."):
                 result = compare_skills(jd, resume)
 
             try:
                 start = result.find("{")
                 end = result.rfind("}") + 1
-                json_str = result[start:end]
-                data = json.loads(json_str)
+                data = json.loads(result[start:end])
 
                 matched = data.get("matched", [])
                 missing = data.get("missing", [])
@@ -132,22 +127,38 @@ if option == "Analyze":
                 matched = ["Python", "SQL"]
                 missing = ["AWS", "Django"]
 
-            c1, c2 = st.columns(2)
+            # KPI Cards
+            c1, c2, c3 = st.columns(3)
 
-            with c1:
-                st.markdown("### ✅ Matched Skills")
-                st.success(matched)
+            c1.markdown(f"""
+            <div class="card">
+            <h3>✅ Matched Skills</h3>
+            <h1>{len(matched)}</h1>
+            </div>
+            """, unsafe_allow_html=True)
 
-            with c2:
-                st.markdown("### ❌ Missing Skills")
-                st.error(missing)
+            c2.markdown(f"""
+            <div class="card">
+            <h3>❌ Missing Skills</h3>
+            <h1>{len(missing)}</h1>
+            </div>
+            """, unsafe_allow_html=True)
+
+            score = round(len(matched)/(len(matched)+len(missing)+1)*100)
+
+            c3.markdown(f"""
+            <div class="card">
+            <h3>📊 Score</h3>
+            <h1>{score}%</h1>
+            </div>
+            """, unsafe_allow_html=True)
 
             show_skill_chart(matched, missing)
 
 # ================= INTERVIEW =================
 elif option == "Interview":
 
-    st.subheader("🎤 AI Mock Interview")
+    st.subheader("🎤 AI Interview")
 
     skill = st.text_input("Enter Skill")
 
@@ -156,7 +167,9 @@ elif option == "Interview":
         st.session_state["question"] = question
         st.info(question)
 
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     answer = st.text_area("✍️ Your Answer")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("📊 Evaluate Answer"):
         if "question" in st.session_state:
@@ -165,29 +178,35 @@ elif option == "Interview":
         else:
             st.warning("Generate question first")
 
-# ================= LEARNING PLAN =================
+# ================= LEARNING =================
 elif option == "Learning Plan":
 
-    st.subheader("📚 Personalized Learning Roadmap")
+    st.subheader("📚 Learning Roadmap")
 
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     missing_input = st.text_area("Enter Missing Skills")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("🚀 Generate Plan"):
         if missing_input:
-            with st.spinner("Creating roadmap..."):
+            with st.spinner("Generating roadmap..."):
                 plan = generate_learning_plan(missing_input)
             st.write(plan)
 
 # ================= REPORT =================
 elif option == "Report":
 
-    st.subheader("📄 Generate Professional Report")
+    st.subheader("📄 Generate Report")
 
-    jd = st.text_area("📄 Job Description", height=200)
-    resume = st.text_area("📄 Resume", height=200)
+    col1, col2 = st.columns(2)
+
+    with col1:
+        jd = st.text_area("📄 Job Description", height=200)
+
+    with col2:
+        resume = st.text_area("📄 Resume", height=200)
 
     if st.button("📥 Generate PDF Report"):
-
         if jd and resume:
             with st.spinner("Generating report..."):
                 score = calculate_resume_score(jd, resume)
@@ -196,8 +215,7 @@ elif option == "Report":
             try:
                 start = result.find("{")
                 end = result.rfind("}") + 1
-                json_str = result[start:end]
-                data = json.loads(json_str)
+                data = json.loads(result[start:end])
 
                 matched = data.get("matched", [])
                 missing = data.get("missing", [])
