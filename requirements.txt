@@ -4,3 +4,4 @@ groq
 openai
 google-generativeai
 reportlab
+python-dotenv
