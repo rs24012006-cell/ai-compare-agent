@@ -16,36 +16,14 @@ from agent import (
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide")
 
-# ---------------- FINAL CLEAN CSS ----------------
+# ---------------- CLEAN LIGHT UI ----------------
 st.markdown("""
 <style>
 
-/* App background */
+/* Background */
 [data-testid="stAppViewContainer"] {
     background: #F5F7FB;
-}
-
-/* Remove ALL unwanted lines */
-hr {display:none !important;}
-[data-testid="stDivider"] {display:none !important;}
-[data-testid="stMarkdownContainer"] hr {display:none !important;}
-
-/* Remove block borders */
-[data-testid="stVerticalBlock"] > div {
-    border: none !important;
-    background: transparent !important;
-}
-
-/* Remove header spacing line */
-h1, h2, h3 {
-    margin-bottom: 0px !important;
-    padding-bottom: 0px !important;
-    color: #111827;
-}
-
-/* Reduce top spacing */
-.block-container {
-    padding-top: 1rem;
+    color: #1F2937;
 }
 
 /* Cards */
@@ -53,8 +31,8 @@ h1, h2, h3 {
     background: white;
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
-    margin-top: 10px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
     border: 1px solid #E5E7EB;
 }
 
@@ -79,6 +57,22 @@ section[data-testid="stSidebar"] {
     background-color: #FFFFFF;
 }
 
+/* Remove white lines */
+hr {
+    border: none;
+    height: 0px;
+    margin: 0px;
+}
+
+[data-testid="stDivider"] {
+    display: none;
+}
+
+/* Headers */
+h1, h2, h3 {
+    color: #111827;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,15 +95,7 @@ def show_skill_chart(matched, missing):
         "Type": ["Matched", "Missing"],
         "Count": [len(matched), len(missing)]
     }
-
     fig = px.bar(data, x="Type", y="Count", title="Skill Gap Analysis")
-
-    # remove extra white space
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=40, b=0),
-        paper_bgcolor="#F5F7FB"
-    )
-
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------- SAFE JSON ----------------
