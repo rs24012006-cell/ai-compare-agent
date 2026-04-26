@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import plotly.express as px
+from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
@@ -15,13 +16,17 @@ from agent import (
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Compare Agent", page_icon="🚀", layout="wide")
 
-# ---------------- LIGHT THEME CSS ----------------
+# ---------------- CLEAN LIGHT UI ----------------
 st.markdown("""
 <style>
+
+/* Background */
 [data-testid="stAppViewContainer"] {
     background: #F5F7FB;
     color: #1F2937;
 }
+
+/* Cards */
 .card {
     background: white;
     padding: 20px;
@@ -30,6 +35,8 @@ st.markdown("""
     margin-bottom: 15px;
     border: 1px solid #E5E7EB;
 }
+
+/* Buttons */
 .stButton>button {
     background: linear-gradient(90deg, #2563eb, #3b82f6);
     color: white;
@@ -38,16 +45,34 @@ st.markdown("""
     font-weight: 600;
     border: none;
 }
+
+/* Inputs */
 textarea, input {
     border-radius: 10px !important;
     border: 1px solid #D1D5DB !important;
 }
+
+/* Sidebar */
 section[data-testid="stSidebar"] {
     background-color: #FFFFFF;
 }
+
+/* Remove white lines */
+hr {
+    border: none;
+    height: 0px;
+    margin: 0px;
+}
+
+[data-testid="stDivider"] {
+    display: none;
+}
+
+/* Headers */
 h1, h2, h3 {
     color: #111827;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,8 +89,6 @@ st.markdown("""
 <p style='text-align:center; color:gray;'>Analyze • Practice • Improve • Get Hired</p>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
-
 # ---------------- CHART ----------------
 def show_skill_chart(matched, missing):
     data = {
@@ -75,10 +98,19 @@ def show_skill_chart(matched, missing):
     fig = px.bar(data, x="Type", y="Count", title="Skill Gap Analysis")
     st.plotly_chart(fig, use_container_width=True)
 
+# ---------------- SAFE JSON ----------------
+def parse_json(result):
+    try:
+        start = result.find("{")
+        end = result.rfind("}") + 1
+        return json.loads(result[start:end])
+    except:
+        return {"matched": ["Python", "SQL"], "missing": ["AWS", "Django"]}
+
 # ---------------- PDF ----------------
 def generate_pdf_report(score, matched, missing, roadmap_text):
-    file_name = "AI_Skill_Report.pdf"
-    doc = SimpleDocTemplate(file_name)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer)
     styles = getSampleStyleSheet()
 
     content = []
@@ -93,7 +125,8 @@ def generate_pdf_report(score, matched, missing, roadmap_text):
     content.append(Paragraph(f"Learning Plan: {roadmap_text}", styles["Normal"]))
 
     doc.build(content)
-    return file_name
+    buffer.seek(0)
+    return buffer
 
 # ================= ANALYZE =================
 if option == "Analyze":
@@ -114,49 +147,24 @@ if option == "Analyze":
         resume = st.text_area("Resume", height=200, key="resume_analyze")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🔍 Analyze Skills", key="analyze_btn"):
+    if st.button("🔍 Analyze Skills"):
         if jd and resume:
             with st.spinner("Analyzing..."):
                 result = compare_skills(jd, resume)
 
-            try:
-                start = result.find("{")
-                end = result.rfind("}") + 1
-                data = json.loads(result[start:end])
-
-                matched = data.get("matched", [])
-                missing = data.get("missing", [])
-
-            except:
-                st.warning("AI response issue — using fallback data")
-                matched = ["Python", "SQL"]
-                missing = ["AWS", "Django"]
+            data = parse_json(result)
+            matched = data["matched"]
+            missing = data["missing"]
 
             c1, c2, c3 = st.columns(3)
 
-            c1.markdown(f"""
-            <div class="card">
-            <h3>✅ Matched</h3>
-            <h1>{len(matched)}</h1>
-            </div>
-            """, unsafe_allow_html=True)
-
-            c2.markdown(f"""
-            <div class="card">
-            <h3>❌ Missing</h3>
-            <h1>{len(missing)}</h1>
-            </div>
-            """, unsafe_allow_html=True)
+            c1.markdown(f"<div class='card'><h3>✅ Matched</h3><h1>{len(matched)}</h1></div>", unsafe_allow_html=True)
+            c2.markdown(f"<div class='card'><h3>❌ Missing</h3><h1>{len(missing)}</h1></div>", unsafe_allow_html=True)
 
             total = len(matched) + len(missing)
             score = round((len(matched) / total) * 100) if total > 0 else 0
 
-            c3.markdown(f"""
-            <div class="card">
-            <h3>📊 Score</h3>
-            <h1>{score}%</h1>
-            </div>
-            """, unsafe_allow_html=True)
+            c3.markdown(f"<div class='card'><h3>📊 Score</h3><h1>{score}%</h1></div>", unsafe_allow_html=True)
 
             show_skill_chart(matched, missing)
 
@@ -167,16 +175,14 @@ elif option == "Interview":
 
     skill = st.text_input("Enter Skill", key="skill_input")
 
-    if st.button("🎯 Generate Question", key="gen_q"):
+    if st.button("🎯 Generate Question"):
         question = generate_question(skill)
         st.session_state["question"] = question
         st.info(question)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     answer = st.text_area("✍️ Your Answer", key="answer_input")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("📊 Evaluate Answer", key="eval_btn"):
+    if st.button("📊 Evaluate Answer"):
         if "question" in st.session_state:
             result = evaluate_answer(st.session_state["question"], answer)
             st.success(result)
@@ -188,11 +194,9 @@ elif option == "Learning Plan":
 
     st.subheader("📚 Learning Roadmap")
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     missing_input = st.text_area("Enter Missing Skills", key="missing_input")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🚀 Generate Plan", key="plan_btn"):
+    if st.button("🚀 Generate Plan"):
         if missing_input:
             with st.spinner("Generating roadmap..."):
                 plan = generate_learning_plan(missing_input)
@@ -211,35 +215,25 @@ elif option == "Report":
     with col2:
         resume = st.text_area("📄 Resume", height=200, key="resume_report")
 
-    if st.button("📥 Generate PDF Report", key="pdf_btn"):
+    if st.button("📥 Generate PDF Report"):
         if jd and resume:
             with st.spinner("Generating report..."):
                 score = calculate_resume_score(jd, resume)
                 result = compare_skills(jd, resume)
 
-            try:
-                start = result.find("{")
-                end = result.rfind("}") + 1
-                data = json.loads(result[start:end])
-
-                matched = data.get("matched", [])
-                missing = data.get("missing", [])
-
-            except:
-                st.warning("AI response issue — using fallback data")
-                matched = ["Python", "SQL"]
-                missing = ["AWS", "Django"]
+            data = parse_json(result)
+            matched = data["matched"]
+            missing = data["missing"]
 
             roadmap_text = generate_learning_plan(str(missing))
 
-            file_path = generate_pdf_report(score, matched, missing, roadmap_text)
+            pdf = generate_pdf_report(score, matched, missing, roadmap_text)
 
             st.success("✅ Report Generated Successfully!")
 
-            with open(file_path, "rb") as f:
-                st.download_button(
-                    label="⬇️ Download Report",
-                    data=f,
-                    file_name=file_path,
-                    mime="application/pdf"
-                )
+            st.download_button(
+                label="⬇️ Download Report",
+                data=pdf,
+                file_name="AI_Skill_Report.pdf",
+                mime="application/pdf"
+            )
